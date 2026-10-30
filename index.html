@@ -1,11 +1,9 @@
-
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultra-Complex 3D Mandelbulb Raymarcher</title>
+    <title>Hyper-Complex 3D Fractal Universe & Audio-Reactive Raymarcher</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <script>
@@ -28,7 +26,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #030712;
+            background-color: #02040a;
             color: #f3f4f6;
         }
         canvas {
@@ -38,21 +36,27 @@
             touch-action: none;
         }
         .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(10, 15, 30, 0.80);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        /* Custom scrollbar for control panels */
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 5px;
         }
         ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.5);
+            background: rgba(10, 15, 30, 0.5);
         }
         ::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 3px;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.97); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 4s infinite ease-in-out;
         }
     </style>
 </head>
@@ -61,85 +65,129 @@
     <!-- WebGL Canvas -->
     <canvas id="glCanvas"></canvas>
 
-    <!-- UI Overlay Header -->
-    <header class="absolute top-0 left-0 right-0 p-4 sm:p-6 flex justify-between items-center pointer-events-none z-10">
-        <div class="glass-panel px-4 py-2.5 rounded-2xl pointer-events-auto flex items-center space-x-3 shadow-2xl">
-            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+    <!-- Top Navigation & Status -->
+    <header class="absolute top-0 left-0 right-0 p-4 sm:p-6 flex justify-between items-center pointer-events-none z-20">
+        <div class="glass-panel px-4 py-2.5 rounded-2xl pointer-events-auto flex items-center space-x-3 shadow-2xl border-indigo-500/30">
+            <div id="statusDot" class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
             <div>
-                <h1 class="text-sm font-bold tracking-wider uppercase text-white/90">Mandelbulb 3D</h1>
-                <p class="text-xs text-indigo-300 font-mono">Real-Time GLSL Raymarcher</p>
+                <h1 class="text-sm font-bold tracking-widest uppercase text-white/90">Hyper-Fractal Engine</h1>
+                <p class="text-xs text-cyan-400 font-mono">Non-Euclidean Raymarcher v4.8</p>
             </div>
         </div>
 
         <div class="flex items-center space-x-3 pointer-events-auto">
-            <!-- FPS & Stats Badge -->
-            <div class="glass-panel px-4 py-2 rounded-2xl hidden sm:flex items-center space-x-4 text-xs font-mono text-gray-300">
-                <div>FPS: <span id="fpsCounter" class="text-emerald-400 font-bold">60</span></div>
-                <div class="text-gray-600">|</div>
-                <div>Res: <span id="resDisplay" class="text-indigo-400">1080p</span></div>
+            <div class="glass-panel px-4 py-2 rounded-2xl hidden md:flex items-center space-x-4 text-xs font-mono text-gray-300">
+                <div>FPS: <span id="fpsCounter" class="text-cyan-400 font-bold">60</span></div>
+                <div class="text-gray-700">|</div>
+                <div>Audio: <span id="audioStatusIndicator" class="text-amber-400 font-bold">Synth Active</span></div>
             </div>
 
-            <!-- Toggle Info Modal Button -->
+            <!-- Fullscreen Toggle -->
+            <button id="fullscreenBtn" class="glass-panel hover:bg-slate-800/80 text-white p-2.5 rounded-2xl transition-all duration-200 shadow-xl border border-white/10 active:scale-95" title="Toggle Fullscreen">
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            </button>
+
+            <!-- Guide / Info Button -->
             <button id="infoBtn" class="glass-panel hover:bg-slate-800/80 text-white px-4 py-2.5 rounded-2xl text-xs font-medium transition-all duration-200 flex items-center space-x-2 shadow-xl border border-white/10 active:scale-95">
                 <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>Math & Theory</span>
+                <span>Universe Guide</span>
             </button>
         </div>
     </header>
 
-    <!-- Floating Control Panel (Left or Bottom) -->
-    <div class="absolute bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:w-80 glass-panel p-5 rounded-3xl z-10 shadow-2xl transition-all duration-300">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center space-x-2">
-                <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                <span>Shader Parameters</span>
+    <!-- Floating Control Deck (Collapsible or Side Panel) -->
+    <div class="absolute bottom-4 left-4 right-4 sm:left-6 sm:right-auto sm:w-80 glass-panel p-5 rounded-3xl z-20 shadow-2xl transition-all duration-300 max-h-[85vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-gray-200 flex items-center space-x-2">
+                <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 11-10-4m0 4v2m0-6V4"></path></svg>
+                <span>Quantum & Audio Controls</span>
             </h2>
-            <button id="resetViewBtn" class="text-xs text-indigo-400 hover:text-indigo-300 font-mono underline transition-colors">Reset Camera</button>
+            <button id="resetDefaultsBtn" class="text-xs text-cyan-400 hover:text-cyan-300 font-mono underline transition-colors">Reset</button>
         </div>
 
-        <div class="space-y-4">
-            <!-- Power Control -->
+        <div class="space-y-4 text-xs">
+            <!-- Universe Dimension Mode -->
             <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5 text-gray-400">
+                <label class="block text-gray-400 font-medium mb-1.5 flex justify-between">
+                    <span>Dimension Archetype</span>
+                    <span id="dimensionName" class="text-cyan-400 font-mono">Hyper-Mandelbulb</span>
+                </label>
+                <select id="dimensionSelect" class="w-full bg-slate-900/90 border border-slate-700 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500 font-mono">
+                    <option value="0">01. Hyper-Mandelbulb & Nebula</option>
+                    <option value="1">02. Non-Euclidean Glowing Corridors</option>
+                    <option value="2">03. Julia-Mandelbulb Hybrid Morph</option>
+                    <option value="3">04. Gravitational Singularity Lensing</option>
+                </select>
+            </div>
+
+            <!-- Audio Input Source -->
+            <div>
+                <label class="block text-gray-400 font-medium mb-1.5 flex justify-between">
+                    <span>Audio Modulation Source</span>
+                    <span id="audioSourceLabel" class="text-amber-400 font-mono">Internal Synth</span>
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="synthAudioBtn" class="py-2 px-3 rounded-xl bg-cyan-600/30 border border-cyan-500/50 text-cyan-200 font-medium hover:bg-cyan-600/50 transition-all flex items-center justify-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                        <span>Synth FX</span>
+                    </button>
+                    <button id="micAudioBtn" class="py-2 px-3 rounded-xl bg-slate-800 border border-slate-700 text-gray-300 font-medium hover:bg-slate-700 transition-all flex items-center justify-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        <span>Microphone</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Fractal Power Slider -->
+            <div>
+                <div class="flex justify-between text-gray-400 mb-1">
                     <span>Fractal Power ($n$)</span>
                     <span id="powerVal" class="font-mono text-white">8.0</span>
                 </div>
-                <input id="powerRange" type="range" min="2.0" max="16.0" step="0.1" value="8.0" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                <input id="powerRange" type="range" min="2.0" max="16.0" step="0.1" value="8.0" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
             </div>
 
-            <!-- Iterations Control -->
+            <!-- Distortion Field Slider -->
             <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5 text-gray-400">
-                    <span>Detail Iterations</span>
-                    <span id="iterVal" class="font-mono text-white">8</span>
+                <div class="flex justify-between text-gray-400 mb-1">
+                    <span>Recursive Distortion</span>
+                    <span id="distortionVal" class="font-mono text-white">1.0</span>
                 </div>
-                <input id="iterRange" type="range" min="3" max="15" step="1" value="8" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                <input id="distortionRange" type="range" min="0.0" max="3.0" step="0.05" value="1.0" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
             </div>
 
-            <!-- Glow / Volumetric Intensity -->
+            <!-- Glow / Bloom Intensity -->
             <div>
-                <div class="flex justify-between text-xs font-medium mb-1.5 text-gray-400">
-                    <span>Volumetric Glow</span>
-                    <span id="glowVal" class="font-mono text-white">2.5</span>
+                <div class="flex justify-between text-gray-400 mb-1">
+                    <span>Neon Bloom Intensity</span>
+                    <span id="glowVal" class="font-mono text-white">2.0</span>
                 </div>
-                <input id="glowRange" type="range" min="0.5" max="5.0" step="0.1" value="2.5" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                <input id="glowRange" type="range" min="0.5" max="5.0" step="0.1" value="2.0" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
             </div>
 
-            <!-- Color Palette / Speed -->
-            <div class="pt-2 border-t border-slate-700/50 flex items-center justify-between">
-                <span class="text-xs text-gray-400">Color Cycling</span>
-                <button id="animToggle" class="px-3 py-1 rounded-xl bg-indigo-600/30 border border-indigo-500/50 text-indigo-300 text-xs font-medium hover:bg-indigo-600/50 transition-all">Pause Anim</button>
+            <!-- Color Palette Selector -->
+            <div>
+                <label class="block text-gray-400 font-medium mb-1.5 flex justify-between">
+                    <span>Spectra Palette</span>
+                    <span id="paletteName" class="text-indigo-400 font-mono">Cyberpunk Neon</span>
+                </label>
+                <select id="paletteSelect" class="w-full bg-slate-900/90 border border-slate-700 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500 font-mono">
+                    <option value="0">Cyberpunk Neon (Cyan / Magenta)</option>
+                    <option value="1">Deep Cosmos (Gold / Purple)</option>
+                    <option value="2">Bio-Luminescence (Emerald / Teal)</option>
+                    <option value="3">Solar Flare (Plasma / Crimson)</option>
+                </select>
             </div>
         </div>
     </div>
 
-    <!-- Math & Theory Modal -->
-    <div id="infoModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <!-- Universe Guide Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="glass-panel w-full max-w-2xl max-h-[85vh] rounded-3xl p-6 sm:p-8 flex flex-col shadow-2xl border border-white/10 overflow-hidden transform scale-95 transition-transform duration-300" id="modalContent">
             <div class="flex justify-between items-center pb-4 border-b border-white/10">
                 <div class="flex items-center space-x-3">
-                    <div class="w-3 h-3 rounded-full bg-indigo-500"></div>
-                    <h3 class="text-lg font-bold text-white">The Mathematics of 3D Raymarched Fractals</h3>
+                    <div class="w-3 h-3 rounded-full bg-cyan-400"></div>
+                    <h3 class="text-lg font-bold text-white">About the Hyper-Fractal Engine</h3>
                 </div>
                 <button id="closeModalBtn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -148,54 +196,183 @@
 
             <div class="py-6 overflow-y-auto space-y-5 text-sm text-gray-300 leading-relaxed pr-2">
                 <p>
-                    Unlike traditional 3D graphics rendered using polygon meshes (triangles), this application uses <strong class="text-white">Raymarching</strong> and <strong class="text-white">Signed Distance Fields (SDF)</strong> evaluated entirely inside a real-time GLSL Fragment Shader on your GPU.
+                    This is an ultra-advanced real-time WebGL application rendering non-Euclidean geometries, recursive Mandelbulb/Julia fractal universes, gravitational lensing, and volumetric audio-reactive neon corridors entirely inside a GPU fragment shader.
                 </p>
 
                 <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-                    <h4 class="text-indigo-400 font-semibold text-xs uppercase tracking-wider">1. Distance Estimation & Mandelbulb Formula</h4>
+                    <h4 class="text-cyan-400 font-semibold text-xs uppercase tracking-wider">1. Audio-Reactive Raymarching</h4>
                     <p class="text-xs text-gray-400">
-                        The Mandelbulb is a three-dimensional analogue of the Mandelbrot set constructed using spherical coordinates. For any point $\vec{p}$, we raise the vector to power $n$ using spherical transformations:
+                        Using the Web Audio API analyzer node, real-time frequency spectrum data (bass, mid, highs) is piped directly into the GLSL uniforms to dynamically warp fractal power, twist space, and pulsate neon glow intensities in sync with the beat.
                     </p>
-                    <div class="font-mono text-xs text-emerald-400 bg-black/40 p-3 rounded-xl border border-white/5 overflow-x-auto">
-                        $v \to r^n \left( \sin(n\theta)\cos(n\phi), \sin(n\theta)\sin(n\phi), \cos(n\theta) \right) + c$
-                    </div>
                 </div>
 
                 <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-                    <h4 class="text-indigo-400 font-semibold text-xs uppercase tracking-wider">2. Sphere Tracing (Raymarching)</h4>
+                    <h4 class="text-cyan-400 font-semibold text-xs uppercase tracking-wider">2. Non-Euclidean & Gravitational Lensing</h4>
                     <p class="text-xs text-gray-400">
-                        Instead of testing exact intersections, rays are marched step-by-step along their direction vector by the safe distance returned by the fractal's distance estimator function:
+                        Rays are bent in curved spacetime fields using custom distance estimators and non-linear ray transformations. This creates infinite corridors and bending light around hyper-dense gravitational singularities.
                     </p>
-                    <div class="font-mono text-xs text-emerald-400 bg-black/40 p-3 rounded-xl border border-white/5 overflow-x-auto">
-                        $d_i = \text{map}(ro + rd \cdot \sum d_k)$
-                    </div>
                 </div>
 
                 <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
-                    <h4 class="text-indigo-400 font-semibold text-xs uppercase tracking-wider">3. Volumetric Accumulation & Glow</h4>
+                    <h4 class="text-cyan-400 font-semibold text-xs uppercase tracking-wider">3. Interactive Controls</h4>
                     <p class="text-xs text-gray-400">
-                        As the ray marches through space, energy is accumulated based on proximity to surfaces ($e^{-2|d|}$). This creates the signature neon atmospheric glow and multi-layered light scattering without pre-computed textures.
+                        Click and drag anywhere on the screen to orbit the camera through the 3D fractal multiverse. Use the control deck to switch dimension archetypes, tune spectra palettes, or toggle between microphone input and synthetic audio streams.
                     </p>
                 </div>
             </div>
 
             <div class="pt-4 border-t border-white/10 flex justify-end">
-                <button id="closeModalBottomBtn" class="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition-all shadow-lg shadow-indigo-600/20">Got it, let's explore</button>
+                <button id="closeModalBottomBtn" class="px-5 py-2.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition-all shadow-lg shadow-cyan-600/20">Enter the Universe</button>
             </div>
         </div>
     </div>
 
-    <!-- WebGL & Application Logic -->
+    <!-- Application Logic & WebGL Shader Engine -->
     <script>
-        // --- WebGL Setup & Shader Compilation ---
+        // --- Web Audio API Synthesizer & Microphone Manager ---
+        class AudioManager {
+            constructor() {
+                this.audioCtx = null;
+                this.analyser = null;
+                this.dataArray = null;
+                this.source = null;
+                this.micStream = null;
+                this.synthInterval = null;
+                this.isMicActive = false;
+                this.audioData = new Float32Array(4); // [bass, mid, treble, overall]
+            }
+
+            initSynth() {
+                if (this.audioCtx && !this.isMicActive) return;
+                this.stop();
+                
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioCtx = new AudioContext();
+                    this.analyser = this.audioCtx.createAnalyser();
+                    this.analyser.fftSize = 64;
+                    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+
+                    // Create procedural ambient synth drone & rhythmic pulses
+                    const osc1 = this.audioCtx.createOscillator();
+                    const osc2 = this.audioCtx.createOscillator();
+                    const filter = this.audioCtx.createBiquadFilter();
+                    const gain = this.audioCtx.createGain();
+
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(55, this.audioCtx.currentTime); // A1
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(110, this.audioCtx.currentTime); // A2
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(400, this.audioCtx.currentTime);
+
+                    gain.gain.setValueAtTime(0.15, this.audioCtx.currentTime);
+
+                    osc1.connect(filter);
+                    osc2.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.analyser);
+                    this.analyser.connect(this.audioCtx.destination);
+
+                    osc1.start();
+                    osc2.start();
+
+                    // Frequency modulation loop for synthetic beat
+                    let time = 0;
+                    this.synthInterval = setInterval(() => {
+                        if (!this.audioCtx) return;
+                        time += 0.2;
+                        const freqMod = 55 + Math.sin(time) * 20 + (Math.random() > 0.8 ? 40 : 0);
+                        osc1.frequency.setTargetAtTime(freqMod, this.audioCtx.currentTime, 0.1);
+                        filter.frequency.setTargetAtTime(300 + Math.sin(time * 0.5) * 250, this.audioCtx.currentTime, 0.1);
+                    }, 200);
+
+                    this.isMicActive = false;
+                    document.getElementById('audioStatusIndicator').innerText = "Synth Active";
+                    document.getElementById('audioStatusIndicator').className = "text-cyan-400 font-bold";
+                    document.getElementById('synthAudioBtn').className = "py-2 px-3 rounded-xl bg-cyan-600/30 border border-cyan-500/50 text-cyan-200 font-medium hover:bg-cyan-600/50 transition-all flex items-center justify-center space-x-1.5";
+                    document.getElementById('micAudioBtn').className = "py-2 px-3 rounded-xl bg-slate-800 border border-slate-700 text-gray-300 font-medium hover:bg-slate-700 transition-all flex items-center justify-center space-x-1.5";
+                    document.getElementById('audioSourceLabel').innerText = "Internal Synth";
+                } catch (e) {
+                    console.error("Web Audio Synth error:", e);
+                }
+            }
+
+            async initMic() {
+                this.stop();
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioCtx = new AudioContext();
+                    this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    this.source = this.audioCtx.createMediaStreamSource(this.micStream);
+                    this.analyser = this.audioCtx.createAnalyser();
+                    this.analyser.fftSize = 64;
+                    this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                    
+                    this.source.connect(this.analyser);
+                    this.isMicActive = true;
+
+                    document.getElementById('audioStatusIndicator').innerText = "Microphone Live";
+                    document.getElementById('audioStatusIndicator').className = "text-emerald-400 font-bold";
+                    document.getElementById('micAudioBtn').className = "py-2 px-3 rounded-xl bg-emerald-600/30 border border-emerald-500/50 text-emerald-200 font-medium hover:bg-emerald-600/50 transition-all flex items-center justify-center space-x-1.5";
+                    document.getElementById('synthAudioBtn').className = "py-2 px-3 rounded-xl bg-slate-800 border border-slate-700 text-gray-300 font-medium hover:bg-slate-700 transition-all flex items-center justify-center space-x-1.5";
+                    document.getElementById('audioSourceLabel').innerText = "Microphone Input";
+                } catch (e) {
+                    console.warn("Microphone access denied or unavailable:", e);
+                    alert("Microphone access was denied or is not supported in your browser environment.");
+                    this.initSynth();
+                }
+            }
+
+            stop() {
+                if (this.synthInterval) clearInterval(this.synthInterval);
+                if (this.micStream) {
+                    this.micStream.getTracks().forEach(track => track.stop());
+                    this.micStream = null;
+                }
+                if (this.audioCtx) {
+                    this.audioCtx.close();
+                    this.audioCtx = null;
+                }
+            }
+
+            updateData() {
+                if (!this.analyser || !this.dataArray) {
+                    // Fallback procedural audio reactive values if audio context isn't running
+                    const t = performance.now() * 0.003;
+                    return [
+                        Math.sin(t) * 0.5 + 0.5,
+                        Math.cos(t * 1.3) * 0.5 + 0.5,
+                        Math.sin(t * 2.1) * 0.5 + 0.5,
+                        Math.sin(t * 0.7) * 0.3 + 0.4
+                    ];
+                }
+
+                this.analyser.getByteFrequencyData(this.dataArray);
+                
+                // Extract bass, mid, treble, overall
+                const bass = (this.dataArray[1] + this.dataArray[2] + this.dataArray[3]) / (3 * 255);
+                const mid = (this.dataArray[10] + this.dataArray[12] + this.dataArray[14]) / (3 * 255);
+                const treble = (this.dataArray[22] + this.dataArray[25] + this.dataArray[28]) / (3 * 255);
+                const overall = (bass + mid + treble) / 3;
+
+                return [bass, mid, treble, overall];
+            }
+        }
+
+        const audioMgr = new AudioManager();
+        window.addEventListener('load', () => { audioMgr.initSynth(); });
+
+        // --- WebGL Setup & Shader Pipeline ---
         const canvas = document.getElementById('glCanvas');
         const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: "high-performance" });
 
         if (!gl) {
-            alert('WebGL 2 is required but not supported in your browser.');
+            alert('WebGL 2 is required for this hyper-complex fractal engine.');
         }
 
-        // Vertex Shader (Full-screen quad)
+        // Full-Screen Quad Vertex Shader
         const vsSource = `#version 300 es
             in vec2 a_position;
             void main() {
@@ -203,7 +380,7 @@
             }
         `;
 
-        // Fragment Shader (Ultra-Complex Raymarched Mandelbulb with Volumetric Glow & Lighting)
+        // Ultra-Advanced Hyper-Complex Fragment Shader
         const fsSource = `#version 300 es
             precision highp float;
 
@@ -212,60 +389,128 @@
             uniform float u_time;
             uniform vec2 u_mouse;
             uniform float u_power;
-            uniform int u_iterations;
+            uniform float u_distortion;
             uniform float u_glowIntensity;
-            uniform float u_animSpeed;
+            uniform int u_dimensionMode;
+            uniform int u_palette;
+            uniform vec4 u_audioData; // bass, mid, treble, overall
 
-            #define MAX_STEPS 96
-            #define MAX_DIST 20.0
+            #define MAX_STEPS 110
+            #define MAX_DIST 25.0
             #define SURF_DIST 0.001
 
-            // Mandelbulb Distance Estimator with Dynamic Folding
-            float mandelbulb(vec3 p, out float trap) {
+            // Complex number / Quaternion rotation utils
+            mat2 rot2D(float angle) {
+                float c = cos(angle), s = sin(angle);
+                return mat2(c, -s, s, c);
+            }
+
+            // 01. Hyper-Mandelbulb Distance Estimator with Audio Modulation
+            float mapMandelbulb(vec3 p, out float trap) {
                 vec3 z = p;
                 float dr = 1.0;
                 float r = 0.0;
                 trap = 1e10;
                 
-                int iter = u_iterations;
-                for (int i = 0; i < 15; i++) {
-                    if (i >= iter) break;
-                    
+                float power = u_power + u_audioData.x * 1.5;
+                
+                for (int i = 0; i < 10; i++) {
                     r = length(z);
                     if (r > 4.0) break;
                     
                     trap = min(trap, r);
                     
-                    // Calculate polar coordinates
                     float theta = acos(clamp(z.z / r, -1.0, 1.0));
                     float phi = atan(z.y, z.x);
-                    dr = pow(r, u_power - 1.0) * u_power * dr + 1.0;
+                    dr = pow(r, power - 1.0) * power * dr + 1.0;
                     
-                    // Scale and rotate
-                    float zr = pow(r, u_power);
-                    theta = theta * u_power;
-                    phi = phi * u_power;
+                    float zr = pow(r, power);
+                    theta = theta * power;
+                    phi = phi * power;
                     
-                    // Convert back to cartesian coordinates
                     z = zr * vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-                    z += p;
+                    z += p + vec3(sin(u_time * 0.2) * 0.05 * u_audioData.y);
                 }
                 return 0.5 * log(r) * r / dr;
             }
 
-            // Scene mapping function
-            float map(vec3 p, out float trap) {
-                // Smooth rotation using time and mouse
-                float t = u_time * u_animSpeed * 0.2;
-                float c = cos(t), s = sin(t);
-                mat2 rot = mat2(c, -s, s, c);
-                p.xz = rot * p.xz;
-                p.xy = rot * p.xy;
-
-                return mandelbulb(p, trap);
+            // 02. Non-Euclidean Glowing Corridors
+            float mapCorridor(vec3 p, out float trap) {
+                trap = length(p);
+                // Fold space periodically
+                vec3 q = mod(p + 2.0, 4.0) - 2.0;
+                float dSph = length(q) - (0.8 + u_audioData.x * 0.3);
+                float dBox = length(max(abs(q) - vec3(1.2, 1.2, 0.4), 0.0));
+                
+                // Twist and combine geometries non-Euclidian style
+                q.xy *= rot2D(p.z * 0.3 * u_distortion);
+                float dCyl = length(q.xy) - (0.5 + u_audioData.y * 0.2);
+                
+                return max(-dSph, mix(dBox, dCyl, 0.5));
             }
 
-            // Calculate surface normal using gradient sampling
+            // 03. Julia-Mandelbulb Hybrid Morphing
+            float mapJuliaHybrid(vec3 p, out float trap) {
+                vec3 z = p;
+                float dr = 1.0;
+                float r = 0.0;
+                trap = 1e10;
+                
+                vec3 c = vec3(
+                    sin(u_time * 0.3) * 0.4,
+                    cos(u_time * 0.2) * 0.4,
+                    sin(u_time * 0.1) * 0.4
+                ) * u_audioData.w;
+
+                float power = u_power * 0.85;
+
+                for (int i = 0; i < 10; i++) {
+                    r = length(z);
+                    if (r > 4.0) break;
+                    trap = min(trap, r);
+                    
+                    float theta = acos(clamp(z.z / r, -1.0, 1.0));
+                    float phi = atan(z.y, z.x);
+                    dr = pow(r, power - 1.0) * power * dr + 1.0;
+                    
+                    float zr = pow(r, power);
+                    z = zr * vec3(sin(theta * power) * cos(phi * power), sin(theta * power) * sin(phi * power), cos(theta * power));
+                    z += c; // Julia constant offset modulated by audio
+                }
+                return 0.5 * log(r) * r / dr;
+            }
+
+            // 04. Gravitational Singularity Lensing
+            float mapSingularity(vec3 p, out float trap) {
+                float r = length(p);
+                trap = r;
+                // Accretion disk torus + central black hole sphere
+                float dCore = r - (0.6 + u_audioData.x * 0.2);
+                
+                vec3 q = p;
+                q.xy *= rot2D(u_time * 0.5);
+                float dDisk = length(vec2(length(q.xy) - 1.8, q.z)) - (0.3 + u_audioData.z * 0.15);
+                
+                return min(dCore, dDisk);
+            }
+
+            // Master Scene Distance Estimator Router
+            float map(vec3 p, out float trap) {
+                // Apply global recursive distortion field
+                p += sin(p.yzx * u_distortion * 2.0 + u_time * 0.5) * 0.08 * u_audioData.w;
+
+                if (u_dimensionMode == 0) {
+                    return mapMandelbulb(p, trap);
+                } else if (u_dimensionMode == 1) {
+                    return mapCorridor(p, trap);
+                } else if (u_dimensionMode == 2) {
+                    return mapJuliaHybrid(p, trap);
+                } else {
+                    return mapSingularity(p, trap);
+                }
+            }
+
+            // Calculate Normal Vector
             vec3 calcNormal(vec3 p) {
                 float dummy;
                 float d = map(p, dummy);
@@ -278,30 +523,31 @@
                 return normalize(n);
             }
 
-            // Ambient Occlusion approximation
-            float calcAO(vec3 p, vec3 normal) {
-                float occ = 0.0;
-                float sca = 1.0;
-                for (int i = 0; i < 5; i++) {
-                    float hr = 0.01 + 0.05 * float(i);
-                    vec3 aopos = normal * hr + p;
-                    float dummy;
-                    float dd = map(aopos, dummy);
-                    occ += (hr - dd) * sca;
-                    sca *= 0.75;
+            // Procedural Spectra Color Generator
+            vec3 getPaletteColor(float t, int paletteId) {
+                if (paletteId == 0) {
+                    // Cyberpunk Neon (Cyan / Magenta / Deep Blue)
+                    return vec3(0.1, 0.8, 1.0) + vec3(0.9, 0.2, 0.8) * cos(6.28318 * (vec3(1.0) * t + vec3(0.0, 0.33, 0.67)));
+                } else if (paletteId == 1) {
+                    // Deep Cosmos (Gold / Purple / Obsidian)
+                    return vec3(0.5, 0.2, 0.8) + vec3(0.5, 0.4, 0.2) * cos(6.28318 * (vec3(1.0) * t + vec3(0.3, 0.2, 0.5)));
+                } else if (paletteId == 2) {
+                    // Bio-Luminescence (Emerald / Teal / Lime)
+                    return vec3(0.05, 0.6, 0.4) + vec3(0.4, 0.5, 0.2) * cos(6.28318 * (vec3(1.0) * t + vec3(0.2, 0.5, 0.7)));
+                } else {
+                    // Solar Flare (Plasma Crimson / Orange / Gold)
+                    return vec3(0.8, 0.2, 0.1) + vec3(0.5, 0.3, 0.1) * cos(6.28318 * (vec3(1.0) * t + vec3(0.0, 0.1, 0.2)));
                 }
-                return clamp(1.0 - 3.0 * occ, 0.0, 1.0);
             }
 
             void main() {
-                // Normalized pixel coordinates (-1 to 1, aspect-corrected)
                 vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
 
-                // Camera Setup
+                // Camera Setup & Orbit Control
                 vec2 mouse = u_mouse / u_resolution;
-                float camDist = 3.2;
+                float camDist = 3.5 - u_audioData.w * 0.3;
                 float camAngleX = mouse.y * 3.14159 - 1.57;
-                float camAngleY = mouse.x * 6.28318;
+                float camAngleY = mouse.x * 6.28318 + u_time * 0.05;
                 
                 vec3 ro = vec3(
                     camDist * sin(camAngleY) * cos(camAngleX),
@@ -313,9 +559,9 @@
                 vec3 ww = normalize(ta - ro);
                 vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
                 vec3 vv = normalize(cross(uu, ww));
-                vec3 rd = normalize(uv.x * uu + uv.y * vv + 1.5 * ww);
+                vec3 rd = normalize(uv.x * uu + uv.y * vv + 1.6 * ww);
 
-                // Raymarching Loop
+                // Raymarching Loop with Gravitational Lensing Distortion
                 float dO = 0.0;
                 float glow = 0.0;
                 float minTrap = 1e10;
@@ -323,12 +569,19 @@
                 
                 for (int i = 0; i < MAX_STEPS; i++) {
                     vec3 p = ro + rd * dO;
+                    
+                    // Gravitational lensing bending effect if singularity mode active
+                    if (u_dimensionMode == 3) {
+                        float r = length(p);
+                        rd = normalize(rd - (p / (r * r * r)) * 0.08);
+                    }
+
                     float trap;
                     float dS = map(p, trap);
                     minTrap = min(minTrap, trap);
                     
-                    // Accumulate volumetric glow along ray path
-                    glow += exp(-3.0 * abs(dS)) * 0.08;
+                    // Accumulate audio-reactive volumetric glow
+                    glow += exp(-2.5 * abs(dS)) * (0.07 + u_audioData.w * 0.05);
                     
                     if (dS < SURF_DIST) {
                         hit = true;
@@ -338,34 +591,33 @@
                     dO += dS;
                 }
 
-                // Base Background / Atmosphere Color
-                vec3 col = mix(vec3(0.02, 0.03, 0.07), vec3(0.06, 0.02, 0.12), uv.y + 0.5);
-                col += vec3(0.1, 0.2, 0.4) * glow * u_glowIntensity;
+                // Background cosmos gradient
+                vec3 col = mix(vec3(0.01, 0.02, 0.05), vec3(0.04, 0.01, 0.08), uv.y + 0.5);
+                vec3 glowColor = getPaletteColor(minTrap * 2.0 + u_time * 0.1, u_palette);
+                col += glowColor * glow * u_glowIntensity;
 
                 if (hit) {
                     vec3 p = ro + rd * dO;
                     vec3 normal = calcNormal(p);
-                    vec3 lightDir = normalize(vec3(1.0, 2.0, -1.0));
+                    vec3 lightDir = normalize(vec3(1.5, 2.5, -1.0));
                     
-                    // Lighting calculations
                     float diff = clamp(dot(normal, lightDir), 0.0, 1.0);
                     float amb = clamp(0.5 + 0.5 * normal.y, 0.0, 1.0);
-                    float ao = calcAO(p, normal);
                     
-                    // Procedural color palette based on orbit trap
-                    vec3 baseCol = 0.5 + 0.5 * cos(vec3(3.0, 2.0, 1.0) + minTrap * 4.0 + u_time * 0.2);
+                    vec3 baseCol = getPaletteColor(minTrap * 3.0 + u_audioData.y * 0.5, u_palette);
+                    vec3 shading = baseCol * (diff * 1.4 + amb * 0.4);
                     
-                    vec3 shading = baseCol * (diff * 1.5 + amb * 0.3) * ao;
-                    shading += vec3(0.8, 0.6, 1.0) * pow(clamp(dot(reflect(rd, normal), lightDir), 0.0, 1.0), 16.0); // Specular highlight
+                    // Specular highlight
+                    shading += vec3(1.0) * pow(clamp(dot(reflect(rd, normal), lightDir), 0.0, 1.0), 24.0) * u_audioData.z;
                     
-                    // Fog / Atmospheric attenuation
-                    float fog = exp(-0.08 * dO * dO);
+                    float fog = exp(-0.06 * dO * dO);
                     col = mix(col, shading, fog);
                 }
 
-                // Vignette
+                // Post-processing bloom & vignette
+                col += glowColor * glow * 0.3 * u_audioData.w;
                 vec2 q = gl_FragCoord.xy / u_resolution.xy;
-                col *= 0.5 + 0.5 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.25);
+                col *= 0.5 + 0.5 * pow(16.0 * q.x * q.y * (1.0 - q.x) * (1.0 - q.y), 0.2);
 
                 // Gamma correction
                 col = pow(col, vec3(0.4545));
@@ -404,12 +656,8 @@
         const positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
         const positions = new Float32Array([
-            -1, -1,
-             1, -1,
-            -1,  1,
-            -1,  1,
-             1, -1,
-             1,  1,
+            -1, -1,  1, -1, -1,  1,
+            -1,  1,  1, -1,  1,  1,
         ]);
         gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
@@ -418,20 +666,23 @@
         gl.vertexAttribPointer(aPositionLocation, 2, gl.FLOAT, false, 0, 0);
 
         // Uniform Locations
-        const uResolutionLocation = gl.getUniformLocation(program, "u_resolution");
-        const uTimeLocation = gl.getUniformLocation(program, "u_time");
-        const uMouseLocation = gl.getUniformLocation(program, "u_mouse");
-        const uPowerLocation = gl.getUniformLocation(program, "u_power");
-        const uIterationsLocation = gl.getUniformLocation(program, "u_iterations");
-        const uGlowIntensityLocation = gl.getUniformLocation(program, "u_glowIntensity");
-        const uAnimSpeedLocation = gl.getUniformLocation(program, "u_animSpeed");
+        const uResolutionLoc = gl.getUniformLocation(program, "u_resolution");
+        const uTimeLoc = gl.getUniformLocation(program, "u_time");
+        const uMouseLoc = gl.getUniformLocation(program, "u_mouse");
+        const uPowerLoc = gl.getUniformLocation(program, "u_power");
+        const uDistortionLoc = gl.getUniformLocation(program, "u_distortion");
+        const uGlowIntensityLoc = gl.getUniformLocation(program, "u_glowIntensity");
+        const uDimensionModeLoc = gl.getUniformLocation(program, "u_dimensionMode");
+        const uPaletteLoc = gl.getUniformLocation(program, "u_palette");
+        const uAudioDataLoc = gl.getUniformLocation(program, "u_audioData");
 
-        // --- State Variables ---
+        // --- Application State ---
         let state = {
             power: 8.0,
-            iterations: 8,
-            glow: 2.5,
-            animSpeed: 1.0,
+            distortion: 1.0,
+            glow: 2.0,
+            dimensionMode: 0,
+            palette: 0,
             mouseX: window.innerWidth * 0.5,
             mouseY: window.innerHeight * 0.5,
             targetMouseX: window.innerWidth * 0.5,
@@ -441,22 +692,20 @@
             lastMouseY: 0
         };
 
-        // Resize Canvas with pixel ratio optimization
+        // Resize Handler
         function resizeCanvas() {
             const displayWidth = window.innerWidth;
             const displayHeight = window.innerHeight;
-            
             if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
                 canvas.width = displayWidth;
                 canvas.height = displayHeight;
                 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-                document.getElementById('resDisplay').innerText = `${displayWidth}x${displayHeight}`;
             }
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // --- Mouse & Touch Interaction ---
+        // --- Mouse & Touch Interactions ---
         window.addEventListener('mousedown', (e) => {
             if (e.target.closest('header') || e.target.closest('.absolute')) return;
             state.isDragging = true;
@@ -477,7 +726,6 @@
 
         window.addEventListener('mouseup', () => { state.isDragging = false; });
 
-        // Touch support for mobile devices
         window.addEventListener('touchstart', (e) => {
             if (e.target.closest('header') || e.target.closest('.absolute')) return;
             if (e.touches.length === 1) {
@@ -500,7 +748,7 @@
 
         window.addEventListener('touchend', () => { state.isDragging = false; });
 
-        // --- UI Element Bindings ---
+        // --- UI Bindings & Event Listeners ---
         const powerRange = document.getElementById('powerRange');
         const powerVal = document.getElementById('powerVal');
         powerRange.addEventListener('input', (e) => {
@@ -508,11 +756,11 @@
             powerVal.innerText = state.power.toFixed(1);
         });
 
-        const iterRange = document.getElementById('iterRange');
-        const iterVal = document.getElementById('iterVal');
-        iterRange.addEventListener('input', (e) => {
-            state.iterations = parseInt(e.target.value);
-            iterVal.innerText = state.iterations;
+        const distortionRange = document.getElementById('distortionRange');
+        const distortionVal = document.getElementById('distortionVal');
+        distortionRange.addEventListener('input', (e) => {
+            state.distortion = parseFloat(e.target.value);
+            distortionVal.innerText = state.distortion.toFixed(2);
         });
 
         const glowRange = document.getElementById('glowRange');
@@ -522,35 +770,44 @@
             glowVal.innerText = state.glow.toFixed(1);
         });
 
-        const animToggle = document.getElementById('animToggle');
-        animToggle.addEventListener('click', () => {
-            if (state.animSpeed > 0) {
-                state.animSpeed = 0.0;
-                animToggle.innerText = "Resume Anim";
-                animToggle.classList.replace('bg-indigo-600/30', 'bg-amber-600/30');
-                animToggle.classList.replace('border-indigo-500/50', 'border-amber-500/50');
-                animToggle.classList.replace('text-indigo-300', 'text-amber-300');
-            } else {
-                state.animSpeed = 1.0;
-                animToggle.innerText = "Pause Anim";
-                animToggle.classList.replace('bg-amber-600/30', 'bg-indigo-600/30');
-                animToggle.classList.replace('border-amber-500/50', 'border-indigo-500/50');
-                animToggle.classList.replace('text-amber-300', 'text-indigo-300');
+        const dimensionSelect = document.getElementById('dimensionSelect');
+        const dimensionName = document.getElementById('dimensionName');
+        dimensionSelect.addEventListener('change', (e) => {
+            state.dimensionMode = parseInt(e.target.value);
+            const names = ["Hyper-Mandelbulb", "Glowing Corridors", "Julia-Mandelbulb", "Singularity Lensing"];
+            dimensionName.innerText = names[state.dimensionMode];
+        });
+
+        const paletteSelect = document.getElementById('paletteSelect');
+        const paletteName = document.getElementById('paletteName');
+        paletteSelect.addEventListener('change', (e) => {
+            state.palette = parseInt(e.target.value);
+            const names = ["Cyberpunk Neon", "Deep Cosmos", "Bio-Luminescence", "Solar Flare"];
+            paletteName.innerText = names[state.palette];
+        });
+
+        document.getElementById('synthAudioBtn').addEventListener('click', () => { audioMgr.initSynth(); });
+        document.getElementById('micAudioBtn').addEventListener('click', () => { audioMgr.initMic(); });
+
+        document.getElementById('resetDefaultsBtn').addEventListener('click', () => {
+            state.power = 8.0; powerRange.value = 8.0; powerVal.innerText = "8.0";
+            state.distortion = 1.0; distortionRange.value = 1.0; distortionVal.innerText = "1.00";
+            state.glow = 2.0; glowRange.value = 2.0; glowVal.innerText = "2.0";
+            state.dimensionMode = 0; dimensionSelect.value = "0"; dimensionName.innerText = "Hyper-Mandelbulb";
+            state.palette = 0; paletteSelect.value = "0"; paletteName.innerText = "Cyberpunk Neon";
+            state.targetMouseX = window.innerWidth * 0.5;
+            state.targetMouseY = window.innerHeight * 0.5;
+        });
+
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
             }
         });
 
-        document.getElementById('resetViewBtn').addEventListener('click', () => {
-            state.targetMouseX = window.innerWidth * 0.5;
-            state.targetMouseY = window.innerHeight * 0.5;
-            state.power = 8.0;
-            powerRange.value = 8.0;
-            powerVal.innerText = "8.0";
-            state.iterations = 8;
-            iterRange.value = 8;
-            iterVal.innerText = "8";
-        });
-
-        // Modal Elements
+        // Modal Controls
         const infoBtn = document.getElementById('infoBtn');
         const infoModal = document.getElementById('infoModal');
         const modalContent = document.getElementById('modalContent');
@@ -574,7 +831,7 @@
         closeModalBottomBtn.addEventListener('click', closeModal);
         infoModal.addEventListener('click', (e) => { if (e.target === infoModal) closeModal(); });
 
-        // --- Render Loop & FPS Counter ---
+        // --- Master Render Loop ---
         let startTime = performance.now();
         let frameCount = 0;
         let lastFpsUpdate = startTime;
@@ -583,7 +840,7 @@
         function render(currentTime) {
             const elapsed = (currentTime - startTime) * 0.001;
 
-            // Frame rate calculation
+            // FPS Calculation
             frameCount++;
             if (currentTime - lastFpsUpdate >= 1000) {
                 fpsCounter.innerText = Math.round((frameCount * 1000) / (currentTime - lastFpsUpdate));
@@ -591,23 +848,27 @@
                 lastFpsUpdate = currentTime;
             }
 
-            // Smooth mouse interpolation (lerp)
+            // Smooth mouse interpolation
             state.mouseX += (state.targetMouseX - state.mouseX) * 0.08;
             state.mouseY += (state.targetMouseY - state.mouseY) * 0.08;
 
-            // If not dragging, slowly orbit camera automatically
-            if (!state.isDragging && state.animSpeed > 0) {
-                state.targetMouseX += 0.25;
+            if (!state.isDragging) {
+                state.targetMouseX += 0.2; // Slow auto-orbit
             }
 
+            // Fetch audio modulation data
+            const audioArr = audioMgr.updateData();
+
             // Set Uniforms
-            gl.uniform2f(uResolutionLocation, canvas.width, canvas.height);
-            gl.uniform1f(uTimeLocation, elapsed);
-            gl.uniform2f(uMouseLocation, state.mouseX, state.mouseY);
-            gl.uniform1f(uPowerLocation, state.power);
-            gl.uniform1i(uIterationsLocation, state.iterations);
-            gl.uniform1f(uGlowIntensityLocation, state.glow);
-            gl.uniform1f(uAnimSpeedLocation, state.animSpeed);
+            gl.uniform2f(uResolutionLoc, canvas.width, canvas.height);
+            gl.uniform1f(uTimeLoc, elapsed);
+            gl.uniform2f(uMouseLoc, state.mouseX, state.mouseY);
+            gl.uniform1f(uPowerLoc, state.power);
+            gl.uniform1f(uDistortionLoc, state.distortion);
+            gl.uniform1f(uGlowIntensityLoc, state.glow);
+            gl.uniform1i(uDimensionModeLoc, state.dimensionMode);
+            gl.uniform1i(uPaletteLoc, state.palette);
+            gl.uniform4f(uAudioDataLoc, audioArr[0], audioArr[1], audioArr[2], audioArr[3]);
 
             // Draw Fullscreen Quad
             gl.drawArrays(gl.TRIANGLES, 0, 6);
